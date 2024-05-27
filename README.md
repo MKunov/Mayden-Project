@@ -9,3 +9,6 @@ autocorrelation/: Analysis and visualisation of autocorrelation within the datas
 
 # Data Privacy
 Please note that the original dataset used in this project has been removed due to patient privacy. The repository contains only the code and documentation necessary to reproduce the analysis with a suitable dataset.
+
+# Project Report
+![Project Report](./Mayden%20Project%20Report.pdf)
