@@ -1,0 +1,89 @@
+% ... and then different again for 2209 through to the end.
+
+T = readtable('2209 IAPT Report.xlsx.csv');
+
+% remove Unknowns
+%rowsToRemove = strcmp(ccgT.ORG_NAME1, 'Unknown');
+%ccgT(rowsToRemove, :) = [];
+
+% getting the organisation codes
+org_codes_end = unique(T.ORG_CODE1);
+org_codes_end = org_codes_end(1:end-1);
+
+% Element to remove
+elementToRemove = 'InvalidCode';
+
+% Create a logical index to identify the element to remove
+logicalIndex = ~strcmp(org_codes_end, elementToRemove);
+
+% Use logical indexing to remove the element
+org_codes_end = org_codes_end(logicalIndex);
+
+% something to hold the tables
+allTables2 = cell(1, length(org_codes_end));
+
+% I wanna whack a for loop here, applying to the whole rest of the code, so
+% i can loop over each area code
+
+for j = 1:length(org_codes_end)
+
+    % filter to CCGs
+    ccgT = T(strcmp(T.GROUP_TYPE, 'SubICB'), :);
+
+    % For this, we'll look at Bristol & Somerset
+    rTR = ~strcmp(ccgT.ORG_CODE1, org_codes_end(j));
+    ccgT(rTR, :) = [];
+    
+    % remove all columns except the measure name and the value
+    ccgT = ccgT(:, end-1:end);
+    % rename the heading for measure_value to the YearMonth
+    fileName = '2209 IAPT Report.xlsx';
+    ccgT.Properties.VariableNames{end} = fileName;
+    
+    
+    folderPath = "C:\Users\arthu\Desktop\University\EngMaths\Third year\MDM3\Phase B\";
+    allReports = dir(fullfile(folderPath, '*Report.xlsx.csv'));
+    
+    
+    for i = 26:37 % length(allReports) cannot be done coz the data is organised differently from 2207 for some reason
+        header = allReports(i).name;
+        current_T = readtable(fullfile(folderPath, header)); 
+    
+        % filter to CCGs
+        rTR = ~strcmp(current_T.GROUP_TYPE, 'SubICB');
+        current_T(rTR, :) = [];
+        % remove Unknowns
+        rTR = strcmp(current_T.ORG_NAME1, 'Unknown');
+        current_T(rTR, :) = [];
+        % filter to bristol
+        rTR = ~strcmp(current_T.ORG_CODE1, org_codes_end(j));
+        current_T(rTR, :) = [];
+        current_T = current_T(:, end-1:end);
+    
+        % rename column title to YearMonth
+        current_T.Properties.VariableNames{end} = header;
+    
+        ccgT = outerjoin(ccgT, current_T, 'Keys','MEASURE_NAME', 'MergeKeys', true);
+    
+    end
+     
+    mTR = ~startsWith(ccgT.MEASURE_NAME, 'Count_');
+    ccgT(mTR,:) = [];
+        
+    % identify NaN values
+    nanIndices = isnan(ccgT{:,2:end});
+        
+    % replace NaN values with 0
+    ccgT{:, 2:end}(nanIndices) = 0;
+        
+    % sum all the values
+    rowSums = sum(ccgT{:, 2:end}, 2);
+        
+    % create new table
+    ccgT_new = table(ccgT.MEASURE_NAME, zeros(size(ccgT, 1), 1), 'VariableNames', {'MEASURE_NAME', 'Total'});
+        
+    % adding the totals to new table
+    ccgT_new{:, 2} = rowSums;
+
+    allTables2{j} = ccgT_new;
+end

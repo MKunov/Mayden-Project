@@ -1,0 +1,70 @@
+folderPath = "C:\Users\arthu\Desktop\University\EngMaths\Third year\MDM3\Phase B\";
+allReports = dir(fullfile(folderPath, '*Report.xlsx.csv'));
+
+T = readtable('2009 IAPT Report.xlsx.csv');
+
+% getting the organisation codes
+org_codes = unique(T.ORG_CODE1);
+org_codes = org_codes(1:end-2);
+
+% something to hold the tables
+allTables = cell(1, length(org_codes));
+
+for i = 1:length(org_codes)
+
+    % filtering to regions and then Bristol
+    ccgT = T(strcmp(T.GROUP_TYPE, 'CCG'), :);
+    rTR = ~strcmp(ccgT.ORG_CODE1, org_codes(i));
+    ccgT(rTR, :) = [];
+    % removing irrelavent columns
+    ccgT = ccgT(:, end-1:end);
+    
+    
+    for j = 2:22 %length(allReports) cannot be done coz the data is organised differently from 2207 for some reason
+        header = allReports(j).name;
+        current_T = readtable(fullfile(folderPath, header)); 
+    
+        % filter to CCGs
+        rTR = ~strcmp(current_T.GROUP_TYPE, 'CCG');
+        current_T(rTR, :) = [];
+        % remove Unknowns
+        rTR = strcmp(current_T.ORG_NAME1, 'Unknown');
+        current_T(rTR, :) = [];
+        % filter to bristol
+        rTR = ~strcmp(current_T.ORG_CODE1, org_codes(i));
+        current_T(rTR, :) = [];
+        current_T = current_T(:, end-1:end);
+    
+        % rename column title to YearMonth
+        current_T.Properties.VariableNames{end} = header;
+    
+        ccgT = outerjoin(ccgT, current_T, 'Keys','MEASURE_NAME', 'MergeKeys', true);
+    end
+    
+    mTR = ~startsWith(ccgT.MEASURE_NAME, 'Count_');
+    ccgT(mTR,:) = [];
+    
+    % identify NaN values
+    nanIndices = isnan(ccgT{:,2:end});
+    
+    % replace NaN values with 0
+    ccgT{:, 2:end}(nanIndices) = 0;
+    
+    % sum all the values
+    rowSums = sum(ccgT{:, 2:end}, 2);
+    
+    % create new table
+    ccgT_new = table(ccgT.MEASURE_NAME, zeros(size(ccgT, 1), 1), 'VariableNames', {'MEASURE_NAME', 'Total'});
+    
+    % adding the totals to new table
+    ccgT_new{:, 2} = rowSums;
+
+    allTables{i} = ccgT_new;
+
+end
+
+
+    ccgT = outerjoin(ccgT, current_T, 'Keys','MEASURE_NAME', 'MergeKeys', true);
+end
+
+

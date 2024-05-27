@@ -1,0 +1,49 @@
+clear; clc;
+% load in the table 
+T = readtable('org_full.xlsx');
+
+% calculate the percentage recovery 
+topLabels = T.Properties.VariableNames;
+index_recovery = find(strcmp(topLabels, 'x_Count_Recovery_'));
+index_finished = find(strcmp(topLabels, 'x_Count_FinishedCourseTreatment_'));
+index_notcaseness = find(strcmp(topLabels, 'x_Count_NotAtCaseness_'));
+recovery_array = table2array(T(:, index_recovery));
+finished_array = table2array(T(:, index_finished));
+notcaseness_array = table2array(T(:, index_notcaseness));
+recovery_rate = (recovery_array./(finished_array - notcaseness_array)).*100;
+
+% removing nans
+nan_indices = isnan(recovery_rate);
+recovery_rate(nan_indices) = 0;
+
+% sort the percantages from highest to lowest
+[sorted_recovery, sorted_indices] = sort(recovery_rate, 'descend');
+regions = table2array(T(:,2));
+sorted_regions = regions(sorted_indices);
+
+% create a table of the best regions
+region_table = table(sorted_regions, sorted_recovery);
+
+% top 10 table
+top_10 = region_table(1:10,:);
+top_10_full = table();
+for i = 1:10
+    row = T(strcmp(T.ORG_NAME1, sorted_regions(i,1)), :);
+    top_10_full = [top_10_full; row];
+end
+
+% % exporting the table
+% file_name = 'top_regions.xlsx';
+% writetable(top_10_full, file_name);
+
+% worst 10 table
+worst_10 = region_table(end-12:end-3,:);
+worst_10_full = table();
+for i = 1:10
+    row = T(strcmp(T.ORG_NAME1, sorted_regions(i,1)), :);
+    worst_10_full = [worst_10_full; row];
+end
+
+% % exporting the table
+% file_name = 'worst_regions.xlsx';
+% writetable(worst_10_full, file_name);

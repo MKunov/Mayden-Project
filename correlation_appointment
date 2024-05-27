@@ -1,0 +1,25 @@
+clear; clc;
+% load in the table 
+T = readtable('org_full.xlsx');
+
+topLabels = T.Properties.VariableNames;
+index_recovery = find(strcmp(topLabels, 'x_Count_Recovery_'));
+recovery_array = table2array(T(:, index_recovery));
+
+% specify the words 
+targetWords = {'day', 'week'};
+
+% use cellfun with contains to create a logical index for cells containing the target words
+matchingCells = cellfun(@(x) any(contains(x, targetWords)), topLabels);
+
+% extract cells where the text matches the target text
+selectedCells = topLabels(matchingCells);
+selectedIndices = find(matchingCells);
+
+% getting the correlation coefficients of each metric compared to the specified metric
+correlations_with_metric = zeros(size(selectedIndices,2),1);
+for i = 1:size(selectedIndices,2)
+    other_metric = table2array(T(:,selectedIndices(i)));
+    correlation_mat = corrcoef(recovery_array, other_metric);
+    correlations_with_metric(i) = correlation_mat(1,2);
+end

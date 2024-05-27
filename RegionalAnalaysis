@@ -1,0 +1,167 @@
+T2009 = readtable('2009 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2010 = readtable('2010 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2011 = readtable('2011 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2012 = readtable('2012 IAPT Report.xlsx', 'ReadVariableNames', false);
+
+T2101 = readtable('2101 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2102 = readtable('2102 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2103 = readtable('2103 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2104 = readtable('2104 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2105 = readtable('2105 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2106 = readtable('2106 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2107 = readtable('2107 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2108 = readtable('2108 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2109 = readtable('2109 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2110 = readtable('2110 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2111 = readtable('2111 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2112 = readtable('2112 IAPT Report.xlsx', 'ReadVariableNames', false);
+
+T2201 = readtable('2201 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2202 = readtable('2202 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2203 = readtable('2203 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2204 = readtable('2204 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2205 = readtable('2205 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2206 = readtable('2206 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2207 = readtable('2207 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2208 = readtable('2208 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2209 = readtable('2209 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2210 = readtable('2210 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2211 = readtable('2211 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2212 = readtable('2212 IAPT Report.xlsx', 'ReadVariableNames', false);
+
+T2301 = readtable('2301 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2302 = readtable('2302 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2303 = readtable('2303 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2304 = readtable('2304 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2305 = readtable('2305 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2306 = readtable('2306 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2307 = readtable('2307 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2308 = readtable('2308 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2309 = readtable('2309 IAPT Report.xlsx', 'ReadVariableNames', false);
+
+%%
+
+stackedTable = vertcat(T2009, T2010, ...
+    T2101, T2102, T2103, T2104, T2105, T2106, T2107, T2108, T2109, T2110, T2111, T2112, ...
+    T2201, T2202, T2203, T2204, T2205, T2206, T2207, T2208, T2209, T2210, T2211, T2212, ...
+    T2301, T2302, T2303, T2304, T2305, T2306, T2307, T2308, T2309);
+
+%% replace NaN values with zeros
+
+Table = stackedTable;
+
+t2 = Table{:,'Var10'};
+t2(isnan(t2)) = 0;
+Table{:,'Var10'} = t2;
+
+%%
+
+sortedTable = sortrows(Table, {'Var5'});
+
+% only look at all providers organisation
+%all_providers = sortedTable(34108:end,:);
+
+%%
+
+% Specify the column name and the value to keep
+columnName = 'Var5';
+desiredValues = ['NHS DUDLEY CCG', "NHS FAREHAM AND GOSPORT CCG", "NHS MILTON KEYNES CCG" ...
+    "NHS SOUTH EASTERN HAMPSHIRE CCG", "NHS NEWHAM CCG", "NHS LINCOLNSHIRE ICB - 71E"];
+
+% Logical indexing to keep only rows with the desired value
+rowsToKeep = ismember(sortedTable.(columnName), desiredValues);
+filteredTable = sortedTable(rowsToKeep, :);
+
+%%
+
+% Specify the column name for splitting
+columnName1 = 'Var5';
+
+% Get unique values in the specified column
+uniqueValues = unique(filteredTable.(columnName1));
+
+% Create and store smaller tables in a cell array
+smallerTables = cell(size(uniqueValues));
+for i = 1:length(uniqueValues)
+    value = uniqueValues{i};
+    smallerTables{i} = filteredTable(strcmp(filteredTable.(columnName1), value), :);
+
+    % Order the smaller tables by Column8
+    smallerTables{i} = sortrows(smallerTables{i}, 'Var8');
+end
+
+%%
+
+desiredValue = 'all'; % Replace with the value you want to keep
+
+% Iterate through each table in the cell array
+for i = 1:numel(smallerTables)
+    % Extract the table
+    currentTable = smallerTables{i};
+
+    % Logical indexing to keep rows with the desired value in Var6
+    rowsToKeep = strcmp(currentTable.Var6, desiredValue);
+
+    % Update the table by keeping only the rows with the desired value
+    currentTable = currentTable(rowsToKeep, :);
+
+    % Replace the original table in the cell array with the updated one
+    smallerTables{i} = currentTable;
+end
+
+%%
+
+% Define a custom date format
+dateFormat = 'dd-mmm-yyyy';
+
+% Iterate through each table in the cell array
+for i = 1:numel(smallerTables)
+    % Extract the table
+    currentTable = smallerTables{i};
+
+    % Convert the Var1 column to datetime using the specified format
+    currentTable.Var1 = datetime(currentTable.Var1, 'InputFormat', dateFormat);
+
+    % Sort the table first by Var8 and then by Var1
+    sortedTable = sortrows(currentTable, {'Var8', 'Var1'});
+
+    % Replace the original table in the cell array with the sorted one
+    smallerTables{i} = sortedTable;
+end
+
+%%
+
+% Index of the table in smallerTables to perform correlation
+tableIndex = 6; % Replace with the desired table index
+
+% Define another vector for correlation
+% Replace this with your own vector
+referenceVector = [66 59 52 48 58];
+
+% Specify the step size for rows (every 5 rows)
+stepSize = 5;
+
+% Initialize an array to store correlation values and Var9 values
+correlationValues = [];
+
+% Iterate through every 5 rows in the selected table
+for row = 1:stepSize:size(smallerTables{tableIndex}, 1)
+    % Extract the current subset of rows
+    subsetTable = smallerTables{tableIndex}(row:min(row+stepSize-1, end), :);
+
+    % Extract the Var10 column values from the subset table
+    subsetVar10 = subsetTable.Var10;
+
+    % Calculate Pearson correlation with the reference vector
+    correlation = corr(subsetVar10, referenceVector', 'type', 'Spearman');
+
+    % Extract the first Var9 value from the subset table
+    subsetVar9 = subsetTable.Var9(1);
+
+    % Store the correlation value and Var9 value
+    correlationValues = [correlationValues; correlation, subsetVar9];
+
+end
+
+% Sort correlationValues by values in the first column (correlation values)
+correlationValues = sortrows(correlationValues, 1, 'descend');

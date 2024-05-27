@@ -1,0 +1,82 @@
+clear; clc;
+% load in the table you want (just change the text in '' marks below when using different tables)
+T = readtable('England_Table.csv');
+
+% replace NaN values with zeros
+vars = {'x2009IAPTReport_xlsx' 'x2010IAPTReport_xlsx' 'x2011IAPTReport_xlsx' 'x2012IAPTReport_xlsx'...
+     'x2101IAPTReport_xlsx' 'x2102IAPTReport_xlsx' 'x2103IAPTReport_xlsx' 'x2104IAPTReport_xlsx'... 
+     'x2105IAPTReport_xlsx' 'x2106IAPTReport_xlsx' 'x2107IAPTReport_xlsx' 'x2108IAPTReport_xlsx'...
+     'x2109IAPTReport_xlsx' 'x2110IAPTReport_xlsx' 'x2111IAPTReport_xlsx' 'x2112IAPTReport_xlsx'...
+     'x2201IAPTReport_xlsx' 'x2202IAPTReport_xlsx' 'x2203IAPTReport_xlsx' 'x2204IAPTReport_xlsx'...
+     'x2205IAPTReport_xlsx' 'x2206IAPTReport_xlsx' 'x2207IAPTReport_xlsx' 'x2208IAPTReport_xlsx'...
+     'x2209IAPTReport_xlsx' 'x2210IAPTReport_xlsx' 'x2211IAPTReport_xlsx' 'x2212IAPTReport_xlsx'...
+     'x2301IAPTReport_xlsx' 'x2302IAPTReport_xlsx' 'x2303IAPTReport_xlsx' 'x2304IAPTReport_xlsx'...
+     'x2305IAPTReport_xlsx' 'x2306IAPTReport_xlsx' 'x2307IAPTReport_xlsx' 'x2308IAPTReport_xlsx'...
+     'x2309IAPTReport_xlsx'};
+t2 = T{:,vars};
+t2(isnan(t2)) = 0;
+T{:,vars} = t2;
+
+% specified metric (change the text in '' marks below to use diffrent metrics)
+measure_index = find(strcmp(T.MEASURE_NAME, 'Count_Recovery'));
+
+% extract the specified metric
+specified_metric = table2array(T(measure_index, 2:end));
+
+other_metric = table2array(T(:, 2:end));
+[corr_mat, pval] = corr(specified_metric', other_metric', 'Type', 'Spearman');
+
+
+% outputting the metrics with above 0.7 or below -0.7
+results = [T(:,1), array2table(corr_mat')];
+results_unique = unique(results);
+resultsarray = table2array(results_unique(:,2));
+resultsarray(isnan(resultsarray)) = 0;
+for i = 1:size(resultsarray,1)
+    if abs(resultsarray(i,1))>=0.85
+        resultsarray(i,1) = 1;
+    else
+        resultsarray(i,1) = 0;
+
+    end
+end
+
+for i = fliplr(1:size(resultsarray))
+    if resultsarray(i,1) == 0
+        results_unique(i,:) = [];
+    end
+end
+
+disp(results_unique)
+
+% plotting the most correlated metrics over time 
+
+x = linspace(1,size(t2,2),size(t2,2));
+y = zeros(size(results_unique,1),size(t2,2));
+
+indexes = zeros(size(results_unique,1),1);
+
+for i = 1:size(results_unique,1)
+    actualIndex = strcmp(T.MEASURE_NAME, results_unique{i,1});
+    indexes(i,1) = find(actualIndex, 1);
+    y(i,:) = t2(indexes(i,1),:);
+    plot(x,y(i,:), 'LineWidth', 2, 'DisplayName', char(T.MEASURE_NAME( ...
+        indexes(i,1))));
+    hold on
+    grid on
+    legend('show')
+end
+
+xaxis = 1:size(t2,2);
+xticks(xaxis);
+xticklabels({'09/20', '10/20', '11/20', '12/20', '01/21', '02/21', '03/21', ...
+    '04/21', '05/21', '06/21', '07/21', '08/21', '09/21', '10/21', '11/21', ...
+    '12/21', '01/22', '02/22', '03/22', '04/22', '05/22', '06/22', '07/22', ...
+    '08/22', '09/22', '10/22', '11/22', '12/22', '01/23', '02/23', '03/23', ...
+    '04/23', '05/23', '06/23', '07/23', '08/23', '09/23'});
+xlim([1,size(t2,2)])
+
+xlabel('Months');
+ylabel('Measure');
+
+legend('Location', 'Best');

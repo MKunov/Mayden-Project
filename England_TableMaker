@@ -1,0 +1,32 @@
+
+T = readtable('2009 IAPT Report.xlsx');
+
+% remove the non-england rows
+rowsToRemove = ~strcmp(T.GROUP_TYPE, 'England');
+T(rowsToRemove, :) = [];
+% remove all columns except the measure name and the value
+T = T(:, end-1:end);
+
+% rename the heading for measure_value to the YearMonth
+fileName = '2009 IAPT Report.xlsx';
+T.Properties.VariableNames{end} = fileName;
+
+
+folderPath = '/Users/edwardloughrey/Desktop/MDM3/Talking Therapy/Unedited Downloaded IAPT Reports'; % CHANGE THIS STRING
+allReports = dir(fullfile(folderPath, '*.xlsx'));
+
+for i = 2:length(allReports)
+    header = allReports(i).name;
+    current_T = readtable(fullfile(folderPath, header), 'Range', 'C1:J225'); % This string gives the range that the england data lies in
+
+    rowsToRemove = ~strcmp(current_T.GROUP_TYPE, 'England');
+    current_T(rowsToRemove, :) = [];
+    current_T = current_T(:, end-1:end);
+
+    current_T.Properties.VariableNames{end} = header;
+
+    T = outerjoin(T, current_T, 'Keys', 'MEASURE_NAME', 'MergeKeys', true);
+end
+
+
+head(T)

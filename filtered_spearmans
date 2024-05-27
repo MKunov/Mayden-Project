@@ -1,0 +1,42 @@
+clear; clc;
+% load in the table 
+T = readtable('top_regions.xlsx');
+
+topLabels = T.Properties.VariableNames;
+index_recovery = find(strcmp(topLabels, 'x_Count_Recovery_'));
+recovery_array = table2array(T(:, index_recovery));
+
+% getting specific metrics
+% specify the words you're looking for
+targetWords = {'Accessing', 'days', 'Weeks', 'FirstAssessment', 'FirstTreatment'};
+
+% use cellfun with contains to create a logical index for cells containing the target words
+matchingCells = cellfun(@(x) any(contains(x, targetWords)), topLabels);
+
+% get the indices of the selected cells in the original cell array
+selectedIndices = find(matchingCells);
+
+% getting the correlation of the specific metric 
+correlations_with_metric = zeros(size(selectedIndices,2),1);
+for i = 1:size(selectedIndices,2)
+    other_metric = table2array(T(:,selectedIndices(1,i)));
+    corr_value = corr(recovery_array, other_metric,'type','Spearman');
+    correlations_with_metric(i) = corr_value;
+end
+
+% getting the specific metric labels
+specific_labels = topLabels(selectedIndices);
+
+% plotting the specific metric labels
+width = size(specific_labels,2);
+x_specific = linspace(1,width, width);
+stem(x_specific,correlations_with_metric, 'x', 'LineWidth', 2);
+grid on
+title('Filtered Metrics correlation with Recovery')
+xlabel('Metrics')
+ylabel('Spearmans correlation score')
+xaxis = 1:width;
+xticks(xaxis);
+xticklabels(specific_labels);
+xlim([0,width])
+ylim([0,1.05])

@@ -1,0 +1,144 @@
+T2009 = readtable('2009 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2010 = readtable('2010 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2011 = readtable('2011 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2012 = readtable('2012 IAPT Report.xlsx', 'ReadVariableNames', false);
+
+T2101 = readtable('2101 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2102 = readtable('2102 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2103 = readtable('2103 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2104 = readtable('2104 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2105 = readtable('2105 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2106 = readtable('2106 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2107 = readtable('2107 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2108 = readtable('2108 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2109 = readtable('2109 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2110 = readtable('2110 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2111 = readtable('2111 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2112 = readtable('2112 IAPT Report.xlsx', 'ReadVariableNames', false);
+
+T2201 = readtable('2201 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2202 = readtable('2202 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2203 = readtable('2203 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2204 = readtable('2204 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2205 = readtable('2205 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2206 = readtable('2206 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2207 = readtable('2207 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2208 = readtable('2208 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2209 = readtable('2209 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2210 = readtable('2210 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2211 = readtable('2211 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2212 = readtable('2212 IAPT Report.xlsx', 'ReadVariableNames', false);
+
+T2301 = readtable('2301 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2302 = readtable('2302 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2303 = readtable('2303 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2304 = readtable('2304 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2305 = readtable('2305 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2306 = readtable('2306 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2307 = readtable('2307 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2308 = readtable('2308 IAPT Report.xlsx', 'ReadVariableNames', false);
+T2309 = readtable('2309 IAPT Report.xlsx', 'ReadVariableNames', false);
+
+%% Stack tables vertically
+
+stackedTable = vertcat(T2009, T2010, ...
+    T2101, T2102, T2103, T2104, T2105, T2106, T2107, T2108, T2109, T2110, T2111, T2112, ...
+    T2201, T2202, T2203, T2204, T2205, T2206, T2207, T2208, T2209, T2210, T2211, T2212, ...
+    T2301, T2302, T2303, T2304, T2305, T2306, T2307, T2308, T2309);
+
+%% Find indices where the value is 'M192' and make a new table
+
+column = stackedTable(:,"Var8");
+column_array = table2array(column);
+
+indices = find(strcmp(column_array, 'M192'));
+
+RecoveryTable = stackedTable(indices,:);
+
+%% replace NaN values with zeros
+
+t2 = RecoveryTable{:,'Var10'};
+t2(isnan(t2)) = 0;
+RecoveryTable{:,'Var10'} = t2;
+
+%% Sort the table by the specified columns
+
+sortedTable = sortrows(RecoveryTable, {'Var7', 'Var5'});
+
+% only look at all providers organisation
+all_providers = sortedTable(34108:end,:);
+
+%% Split large table into multiple smaller tables
+
+% Specify the column for splitting
+splitColumn = 'Var5';
+
+% Get unique values in the split column
+uniqueValues = unique(all_providers.(splitColumn));
+
+% Split the table into smaller tables based on unique values
+smallerTables = splitapply(@(varargin){sortrows(table(varargin{:}), 'Var1')}, all_providers, findgroups(all_providers.(splitColumn)));
+
+%% Plot all data on the same graph
+
+figure;
+hold on;
+grid on;
+for i = 1:numel(smallerTables)
+    plot(smallerTables{i}.Var1, smallerTables{i}.Var10, '-');
+end
+
+title('Data Plots for Different ID Values');
+xlabel('Date');
+ylabel('Value');
+datetick('x', 'dd-mmm-yyyy', 'keepticks');
+%legend('Location', 'Best');
+grid on;
+
+%% Calculate and store the total change for each smaller table
+
+totalChanges = zeros(1, numel(smallerTables));
+
+for i = 1:numel(smallerTables)
+    % Compute differences between consecutive values in the 'Var10' column
+    valueDifferences = diff(smallerTables{i}.Var10);
+    
+    % Sum of absolute differences
+    totalChange = sum(valueDifferences);
+    
+    % Store the total change for the current table
+    totalChanges(i) = totalChange;
+end
+
+% Rank the smaller tables based on total changes
+[sortedChanges, sortedIndices] = sort(totalChanges, 'descend');
+
+% Create a new cell array with smaller tables ordered based on total changes
+orderedSmallerTables = smallerTables(sortedIndices);
+
+%%
+% Display the ranked list of smaller tables and create a list of best to
+% worst
+sorted_list_with_value = string(zeros(numel(sortedIndices), 2));
+
+disp('Ranking of smaller tables based on total change:');
+for i = 1:numel(sortedIndices)
+    currentIndex = sortedIndices(i);
+    disp(['Rank' i ":" uniqueValues(currentIndex) "Persentage Recovery change =" sortedChanges(i)]);
+    sorted_list_with_value(i,:) = [uniqueValues(currentIndex), sortedChanges(i)];
+end
+
+%% plot the % recovery depending on rank
+
+figure;
+hold on;
+grid on;
+for i = 1:10
+    plot(orderedSmallerTables{i}.Var1, orderedSmallerTables{i}.Var10, '-');
+end
+
+title('Data Plots for Different ID Values');
+xlabel('Date');
+ylabel('Value');
+datetick('x', 'dd-mmm-yyyy', 'keepticks');
+%legend('Location', 'Best');

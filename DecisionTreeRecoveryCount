@@ -1,0 +1,84 @@
+clf;
+datatable = readtable("org_full.csv");
+datamatrix = readmatrix("org_full.csv");
+datamatrix = datamatrix(1:end-1,3:end);
+datamatrix(33,126) = 3875;
+datamatrix(105,:) = [];
+datamatrix(51,:) = [];
+topLabels = datatable.Properties.VariableNames;
+topLabels = topLabels(3:end);
+indiceofrecovery = find(strcmp(topLabels, 'x_Count_Recovery_'));
+% indiceofreferral = find(strcmp(topLabels, 'x_Count_ReferralsReceived_'))-2;
+% RecoveryRate = (datamatrix(:, indiceofrecovery)./datamatrix(:,indiceofreferral)).*100;
+
+
+
+% indicesofY = [find(strcmp(topLabels, 'x_Count_Recovery_')), find(strcmp(topLabels, 'x_Count_FinishedCourseTreatment_')), find(strcmp(topLabels, 'x_Count_NotAtCaseness_'))];
+% recoveryratevars = datamatrix(:,indicesofY);
+% recoveryrate = recoveryratevars(:,1)./(recoveryratevars(:,2)-recoveryratevars(:,3));
+% recoveryrate(isnan(recoveryrate)) = 0;
+% Yactual = recoveryrate;
+
+
+indicesofY = [find(strcmp(topLabels, 'x_Count_Recovery_'))];
+
+featureIndices = setdiff(1:size(datamatrix, 2), indicesofY);
+
+
+
+cv = cvpartition(size(datamatrix, 1), 'Holdout', 0.2);
+trainIndices = training(cv);
+testIndices = test(cv);
+
+
+X_train = datamatrix(trainIndices, featureIndices);
+% Y_train = recoveryrate(trainIndices);
+Y_train = datamatrix(trainIndices, indicesofY);
+
+X_test = datamatrix(testIndices, featureIndices);
+% Y_test = recoveryrate(testIndices);
+Y_test = datamatrix(testIndices, indicesofY);
+testorgcodes = datatable(testIndices, "ORG_NAME1");
+
+
+treeModel = fitrtree(X_train, Y_train);
+
+
+predicted = predict(treeModel, X_test);
+error = abs((Y_test - predicted)./predicted)*100;
+erroravg = mean(error);
+error = sort(error);
+disp(mean(error(end-5:end)))
+
+
+y = transpose(Y_test);
+x = 1:length(predicted);
+predicted = transpose(predicted);
+
+
+hold on 
+
+% errorbar(x-1, predicted, error,'x', 'Linewidth', 1)
+plot(x-1, predicted,'x', 'Linewidth', 2)
+
+plot(x-1,y,'o', 'Linewidth', 2)
+ylabel('Recovery Count')
+xticks(0:28)
+xticklabels(table2array(testorgcodes))
+legend('Predicted Recovery Count', 'Actual Recovery Count')
+title("Decision tree predicted recovery rates vs true recovery rates of organisations")
+grid on
+hold off
+
+
+
+
+importanceScores = predictorImportance(treeModel);
+
+
+[sortedImportance, sortedIndices] = sort(importanceScores, 'descend');
+topN = 10; 
+mostimportantfeatures = transpose(topLabels(featureIndices(sortedIndices(1:topN))));
+disp(['Top ' num2str(topN) ' Important Features:']);
+disp(topLabels(featureIndices(sortedIndices(1:topN))));
+disp(erroravg)

@@ -1,0 +1,49 @@
+clear; clc;
+% load in the table 
+T = readtable('org_full.xlsx');
+
+topLabels = T.Properties.VariableNames;
+index_recovery = find(strcmp(topLabels, 'x_Count_Recovery_'));
+recovery_array = table2array(T(:, index_recovery));
+
+% getting the correlation coefficients of each metric compared to the specified metric
+correlations_with_metric = zeros(size(T,2)-2,1);
+for i = 3:size(T,2)
+    other_metric = table2array(T(:,i));
+    corr_value = corr(recovery_array, other_metric,'type','Spearman');
+    correlations_with_metric(i-2) = corr_value;
+end
+
+% outputting the metrics within a certain range
+correlation_index = zeros(size(correlations_with_metric));
+for i = 1:size(correlations_with_metric,1)
+    if abs(correlations_with_metric(i,1))>=0.85
+        correlation_index(i,1) = 1;
+    else
+        correlation_index(i,1) = 0;
+    end
+end
+
+% getting the best metric labels
+best_metrics = [];
+for i = 1:size(correlation_index)
+    if correlation_index(i,1) == 1
+        metric_name = topLabels(1,i+2);
+        best_metrics = [best_metrics, metric_name];
+    end
+end
+
+% plotting the best correlations 
+count = sum(correlation_index == 1);
+x = linspace(1,count,count);
+best_metrics_correlation = correlations_with_metric(correlation_index == 1);
+stem(x,best_metrics_correlation,'x')
+grid on
+title('Metrics with the highest correlation to Recovery')
+xlabel('Metrics')
+ylabel('Spearmans correlation score')
+xaxis = 1:count;
+xticks(xaxis);
+xticklabels(best_metrics);
+xlim([0,53])
+ylim([0,1.05])

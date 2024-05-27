@@ -1,0 +1,34 @@
+T = readtable("org_table_stdRecRate.csv");
+% this table only contains the 10 most important features, as found by the
+% pearson analysis of the england table
+
+% HighsAndLows = T(T.STD_RECOVERY_RATE > 1 | T.STD_RECOVERY_RATE < -1, :);
+Highs = find(T.STD_RECOVERY_RATE > 1);
+Lows = find(T.STD_RECOVERY_RATE < -1);
+Both = sort([Highs; Lows]);
+
+% I aim to display the distribution best and worst performing regions on a 2D plane using
+% This is done by PCA analysis
+% The high performing regions will be displayed in red and the low performing regions in blue
+
+X = table2array(T(:, 3:12)); % feature matrix
+Y = table2array(T(:, 17)); % label vector
+
+% visualising all regions onto the 2D plane
+[V_, Y_, ~, ~] = pca(X);
+k = 2;
+V_ = V_(:, 1:k);
+Y_ = Y_(:, 1:k);
+figure
+scatter(Y_(:, 1), Y_(:, 2), 'x')
+title('Distribution of Data in 2 Dimensions')
+
+% visualising the subset of regions
+subX = X(Both, :);
+subY = Y(Both);
+subY = heaviside(subY);
+[coeff, score, ~, ~, explained, mu] = pca(subX);
+score = score(:, 1:k);
+figure
+gscatter(score(:, 1), score(:, 2), subY)
+title('Distribution of subset data')

@@ -1,0 +1,13 @@
+T_start = readtable('org_table_start.xlsx');
+T_end = readtable('org_table_end.xlsx');
+
+T_start_num = table2array(T_start(:,3:end));
+T_end_num =table2array(T_end(:,3:end));
+
+T_whole = T_start_num + T_end_num;
+
+% checking for NaNs
+[rowIndices, colIndices] = find(isnan(T_whole));
+
+disp('Indices of NaN values:');
+disp([rowIndices, colIndices]);

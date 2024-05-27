@@ -1,0 +1,46 @@
+datatable = readtable("org_table.csv");
+datamatrix = readmatrix("org_table.csv");
+datamatrix = datamatrix(1:end-1,3:end);
+
+
+
+topLabels = datatable.Properties.VariableNames;
+
+indiceofY = find(strcmp(topLabels, 'x_Count_Recovery_'))-1;
+
+featureIndices = setdiff(1:size(datamatrix, 2), indiceofY);
+outputIndex = indiceofY;
+
+trainlimit = round((size(datamatrix,1)*0.9));
+
+X = datamatrix(1:trainlimit, featureIndices);
+Y = datamatrix(1:trainlimit, outputIndex);
+
+treeModel = fitrtree(X, Y);
+predicted = predict(treeModel,datamatrix(trainlimit+1:end,featureIndices));
+error = abs(predicted - datamatrix(trainlimit+1:end, indiceofY));
+
+view(treeModel, 'Mode', 'graph');
+
+figure;
+grid on
+hold on
+y = transpose(datamatrix(trainlimit+1:end, indiceofY));
+x = 1:length(predicted);
+predicted = transpose(predicted);
+
+
+plot(x, predicted, x, y, 'LineWidth', 2)
+legend('Predicted recovered', 'Actual recovered')
+
+
+importanceScores = predictorImportance(treeModel);
+disp('Predictor Importance Scores:');
+disp(importanceScores);
+
+
+[sortedImportance, sortedIndices] = sort(importanceScores, 'descend');
+topN = 10; 
+mostimportantfeatures = topLabels(featureIndices(sortedIndices(1:topN)));
+disp(['Top ' num2str(topN) ' Important Features:']);
+disp(topLabels(featureIndices(sortedIndices(1:topN))));
